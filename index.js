@@ -27,15 +27,18 @@ app.get("/", function (req, res) {
 app.get("/api/shorturl/:short_url", function (req, res) {
   const { short_url } = req.params;
 
-  if (!short_url) return res.json({ error: "Invalid shortener" });
+  if (!short_url) return res.json({ error: "invalid shortener" });
 
   Shortener.findOne({ short_url: short_url })
     .then((q) => {
-      if (!q) return res.json({ error: "Invalid shortener" });
+      if (!q) return res.json({ error: "invalid shortener" });
 
       return res.redirect(301, q.original_url);
     })
-    .catch((e) => console.error(e));
+    .catch((e) => {
+      console.error(e);
+      res.json({ error: "error find database" });
+    });
 });
 
 // ------
@@ -46,7 +49,7 @@ app.post("/api/shorturl", function (req, res) {
 
   // 1. Validar la URL
   if (!isValidUrl(url)) {
-    return res.json({ error: "Invalid URL" });
+    return res.json({ error: "invalid url" });
   }
 
   // 2. Comprobar si existe, si existe lo retorno
@@ -69,12 +72,12 @@ app.post("/api/shorturl", function (req, res) {
         })
         .catch((e) => {
           console.error(e);
-          res.json({ error: "Error save database" });
+          res.json({ error: "error save database" });
         });
     })
     .catch((e) => {
       console.error(e);
-      res.json({ error: "Error find database" });
+      res.json({ error: "error find database" });
     });
 });
 
