@@ -25,11 +25,11 @@ app.get("/", function (req, res) {
 });
 
 app.get("/api/shorturl/:short_url", function (req, res) {
-  const { short_url } = req.params;
+  const { short_url: shortUrl } = req.params;
 
-  if (!short_url) return res.json({ error: "invalid shortener" });
+  if (!shortUrl) return res.json({ error: "invalid shortener" });
 
-  Shortener.findOne({ short_url: short_url })
+  Shortener.findOne({ short_url: shortUrl })
     .then((q) => {
       if (!q) return res.json({ error: "invalid shortener" });
 
