@@ -4,9 +4,9 @@ const express = require("express");
 const app = express();
 const port = process.env.PORT || 3000;
 
+const dns = require("dns");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const { isValidUrl } = require("./src/utils");
 
 const { Shortener } = require("./src/mongoose");
 
@@ -48,37 +48,50 @@ app.post("/api/shorturl", function (req, res) {
   const { url } = req.body;
 
   // 1. Validar la URL
-  if (!isValidUrl(url)) {
-    return res.json({ error: "invalid url" });
-  }
+  try {
+    const { hostname } = new URL(url);
+    dns.lookup(hostname, (err) => {
+      if (err) {
+        console.error("/***** error dns lookup *****/");
+        return res.json({ error: "invalid url" });
+      }
 
-  // 2. Comprobar si existe, si existe lo retorno
-  Shortener.findOne({ original_url: url })
-    .then((q) => {
-      if (q) return res.json({ original_url: q.original_url, short_url: q.short_url });
-
-      // 3. Contar la cantidad de documentos de la colección para obtener el número de short
-      Shortener.countDocuments()
-        .then((counter) => {
-          // 4. Guardar nueva url
-          const short_url = counter + 1;
-
-          const newShortener = new Shortener({ original_url: url, short_url: short_url });
-
-          return newShortener.save();
-        })
+      // 2. Comprobar si existe, si existe lo retorno
+      Shortener.findOne({ original_url: url })
         .then((q) => {
-          return res.json({ original_url: q.original_url, short_url: q.short_url });
+          if (q) return res.json({ original_url: q.original_url, short_url: q.short_url });
+
+          // 3. Contar la cantidad de documentos de la colección para obtener el número de short
+          Shortener.countDocuments()
+            .then((counter) => {
+              // 4. Guardar nueva url
+              const short_url = counter + 1;
+
+              const newShortener = new Shortener({ original_url: url, short_url: short_url });
+
+              return newShortener.save();
+            })
+            .then((q) => {
+              return res.json({ original_url: q.original_url, short_url: q.short_url });
+            })
+            .catch((e) => {
+              console.error(e);
+              res.json({ error: "error save database" });
+            });
         })
         .catch((e) => {
           console.error(e);
-          res.json({ error: "error save database" });
+          res.json({ error: "error find database" });
         });
-    })
-    .catch((e) => {
-      console.error(e);
-      res.json({ error: "error find database" });
     });
+  } catch (err) {
+    console.error("/***** error new URL *****/");
+    return res.json({ error: "invalid url" });
+  }
+
+  /* if (!isValidUrl(url)) {
+    return res.json({ error: "invalid url" });
+  } */
 });
 
 // --------
